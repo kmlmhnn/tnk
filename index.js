@@ -14,7 +14,9 @@ const wss = new WebSocket.Server({ server });
 
 // Globals
 const canvasDimensions = [ 640, 480 ];
-let bullet = { x: 100, y : 100, dx : 1000, dy : 0 }; // dx = 1 pixel per sec
+let bullets = [];
+let newBullets = [], remBullets = [];
+let bulletId = 0; // For generating unique bullet ids
 let players = [];
 let maxPlayers = 2, joinedPlayers = 0;
 let clientSockets = [];
@@ -25,14 +27,14 @@ wss.on('connection', function connection(ws) {
 
 	let player = {
 		x : Math.floor(Math.random() * 640),
-		y : Math.floor(Math.random() * 480)
+		y : Math.floor(Math.random() * 480),
+		sense : "-y"
 	};
 	players.push(player);
 
 
 	ws.send(JSON.stringify({
 		dim : canvasDimensions,
-		bullet : bullet,
 		player : player,
 		id : joinedPlayers,
 		max : maxPlayers
@@ -49,8 +51,15 @@ wss.on('connection', function connection(ws) {
 
 function incoming(id) {
 	return function(data){
-		console.log(id, data);
-		players[id] = JSON.parse(data);
+		let obj = JSON.parse(data);
+		if(obj.dx || obj.dy) { // If obj is a new bullet
+			obj.id = bulletId++;
+			bullets.push(obj);
+			console.log(bullets);
+			newBullets.push(obj);
+		} else {
+			players[id] = obj;
+		}
 	};
 }
 
@@ -60,21 +69,31 @@ const gameloop = require('node-gameloop');
 
 // Gamestate updation
 gameloop.setGameLoop(function(delta) {
-	bullet.x += bullet.dx * delta;
-	bullet.x %= canvasDimensions[0];
+	for(let bullet of bullets) {
+		bullet.x += bullet.dx * delta;
+		if (bullet.x < 0) bullet.x += canvasDimensions[0];
+		bullet.y += bullet.dy * delta;
+		if (bullet.y < 0) bullet.y += canvasDimensions[1];
+		bullet.x %= canvasDimensions[0];
+		bullet.y %= canvasDimensions[1];
+	}
 }, 1000 / 30);
 
 // Periodically send updates to clients.
 gameloop.setGameLoop(function() {
 	for (let client of clientSockets) {
-		client.send(JSON.stringify({
-			bullet : bullet,
+		let data = {
+			newBullets : newBullets,
+			remBullets : remBullets, // Removed Bullets
 			players : players
-		}));
+		};
+		newBullets = [];
+		remBullets = [];
+		client.send(JSON.stringify(data));
 	}
 }, 50);
 
 
 const listener = server.listen(8080, function listening() {
-	console.log('listening on 8080...');
+	// console.log('listening on 8080...');
 });

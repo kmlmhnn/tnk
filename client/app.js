@@ -5,13 +5,16 @@
 let players = [];
 let maxPlayers = 0;
 let player = {};
-let bullet = {};
+let bullets = [];
 let server = {};
 let playerId = 0;
 
 function recv(event) {
 	const data = JSON.parse(event.data);
-	Object.assign(bullet, data.bullet);
+	let temp = bullets.length;
+	bullets = bullets.concat(data.newBullets);
+	if(temp !== bullets.length) console.log(bullets);
+	bullets = bullets.filter(x => !(new Set(data.remBullets)).has(x.id));
 	for(let i = 0; i < maxPlayers; i++){
 		if(i != playerId){ 
 			Object.assign(players[i], data.players[i]);
@@ -21,10 +24,24 @@ function recv(event) {
 
 function keyDown(e) {
 	switch(e.keyCode){
-		case 37: player.x -= 10; break;
-		case 38: player.y -= 10; break;
-		case 39: player.x += 10; break;
-		case 40: player.y += 10; break;
+		case 37: player.x -= 10; player.sense = "-x"; break;
+		case 38: player.y -= 10; player.sense = "-y"; break;
+		case 39: player.x += 10; player.sense = "+x"; break;
+		case 40: player.y += 10; player.sense = "+y"; break;
+
+		case 32: 
+			let bullet = {};
+			bullet.id = 0;
+			bullet.x = player.x; 
+			bullet.y = player.y;
+			switch(player.sense){
+				case "-x": bullet.dx = -1000; bullet.dy = 0; break;
+				case "-y": bullet.dy = -1000; bullet.dx = 0; break;
+				case "+x": bullet.dx =  1000; bullet.dy = 0; break;
+				case "+y": bullet.dy =  1000; bullet.dx = 0; break;
+			}
+			server.send(JSON.stringify(bullet));
+			return;
 	}
 	server.send(JSON.stringify(player));
 
@@ -43,11 +60,18 @@ window.onload = function() {
 		// Hint: Doesnot work with transformations
 		context.clearRect(0, 0, canvas.width, canvas.height);
 
-		// Predict bullet's parameters
-		bullet.x += bullet.dx * delta;
+		for(let bullet of bullets){
+			// Predict bullet's parameters
+			bullet.x += bullet.dx * delta;
+			if (bullet.x < 0) bullet.x += context.canvas.width;
+			bullet.y += bullet.dy * delta;
+			if (bullet.y < 0) bullet.y += context.canvas.height;
+			bullet.x %= context.canvas.width;
+			bullet.y %= context.canvas.height;
 
-		// Draw bullet
-		context.fillRect(bullet.x, bullet.y, 10, 10);
+			// Draw bullet
+			context.fillRect(bullet.x, bullet.y, 10, 10);
+		}
 		// Draw player
 		context.fillRect(player.x, player.y, 20, 20);
 		// Draw others
@@ -65,7 +89,7 @@ window.onload = function() {
 		server.onmessage = function(event){
 			const data = JSON.parse(event.data);
 			const width = data.dim[0], height = data.dim[1];
-			Object.assign(bullet, data.bullet);
+
 			Object.assign(player, data.player);
 			playerId = data.id;
 			maxPlayers = data.max;
