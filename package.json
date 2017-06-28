@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.15.3",
+    "node-gameloop": "^0.1.4",
     "ws": "^3.0.0"
   }
 }
