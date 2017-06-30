@@ -15,23 +15,43 @@ const wss = new WebSocket.Server({ server });
 // Globals
 const canvasDimensions = [ 640, 480 ];
 let bullet = { x: 100, y : 100, dx : 1000, dy : 0 }; // dx = 1 pixel per sec
-let player = { x : 0, y : 0 };
-let clients = [];
+let players = [];
+let maxPlayers = 2, joinedPlayers = 0;
+let clientSockets = [];
 
 wss.on('connection', function connection(ws) {
 	// Send initial game parameters
-	clients.push(ws);
+	clientSockets.push(ws);
+
+	let player = {
+		x : Math.floor(Math.random() * 640),
+		y : Math.floor(Math.random() * 480)
+	};
+	players.push(player);
+
+
 	ws.send(JSON.stringify({
 		dim : canvasDimensions,
 		bullet : bullet,
-		player : player
+		player : player,
+		id : joinedPlayers,
+		max : maxPlayers
 	}));
 
-	ws.on('message', incoming);
+	ws.on('message', incoming(joinedPlayers));
+
+	if(++joinedPlayers == maxPlayers){
+		listener.close(function() {
+			console.log('Stopped listening for new players.');
+		});
+	}
 });
 
-function incoming(data) {
-	console.log(data);
+function incoming(id) {
+	return function(data){
+		console.log(id, data);
+		players[id] = JSON.parse(data);
+	};
 }
 
 
@@ -46,15 +66,15 @@ gameloop.setGameLoop(function(delta) {
 
 // Periodically send updates to clients.
 gameloop.setGameLoop(function() {
-	for (let client of clients) {
+	for (let client of clientSockets) {
 		client.send(JSON.stringify({
 			bullet : bullet,
-			player : player
+			players : players
 		}));
 	}
 }, 50);
 
 
-server.listen(8080, function listening() {
+const listener = server.listen(8080, function listening() {
 	console.log('listening on 8080...');
 });
