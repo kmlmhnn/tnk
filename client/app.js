@@ -26,9 +26,6 @@ function keyDown(e) {
 		case 39: player.x += 10; break;
 		case 40: player.y += 10; break;
 	}
-
-}
-function keyUp() {
 	server.send(JSON.stringify(player));
 
 }
@@ -63,7 +60,6 @@ window.onload = function() {
 	};
 
 	window.addEventListener("keydown", keyDown, false);
-	window.addEventListener("keyup", keyUp, false);
 
 	server.onopen = function () {
 		server.onmessage = function(event){
