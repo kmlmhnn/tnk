@@ -11,9 +11,7 @@ let playerId = 0;
 
 function recv(event) {
 	const data = JSON.parse(event.data);
-	let temp = bullets.length;
 	bullets = bullets.concat(data.newBullets);
-	if(temp !== bullets.length) console.log(bullets);
 	bullets = bullets.filter(x => !(new Set(data.remBullets)).has(x.id));
 	for(let i = 0; i < maxPlayers; i++){
 		if(i != playerId){ 
@@ -53,11 +51,10 @@ function makeRedraw(context) {
 		let delta = (newTick - oldTick) / 1000;
 		oldTick = newTick;
 
-		// Hint: Doesnot work with transformations
 		context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
 		for(let bullet of bullets){
-			// Predict bullet's parameters
+			// Update bullet parameters
 			bullet.x += bullet.dx * delta;
 			if (bullet.x < 0) bullet.x += context.canvas.width;
 			bullet.y += bullet.dy * delta;
@@ -87,7 +84,6 @@ window.onload = function() {
 	const canvas = document.getElementById('canvas');
 	const context = canvas.getContext('2d');
 
-	window.addEventListener("keydown", keyDown, false);
 
 	const redraw = makeRedraw(context);
 
@@ -109,7 +105,7 @@ window.onload = function() {
 				console.log('data', event.data);
 				const data = JSON.parse(event.data);
 				if(data.start){
-					console.log("OK da");
+					window.addEventListener("keydown", keyDown, false);
 					requestAnimationFrame(redraw);
 					server.onmessage = recv;
 				} else {
