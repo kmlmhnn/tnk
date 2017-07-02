@@ -40,9 +40,31 @@ wss.on('connection', function connection(ws) {
 		max : maxPlayers
 	}));
 
-	ws.on('message', incoming(joinedPlayers));
+	for(let client of clientSockets){
+		client.send(JSON.stringify({ joined : joinedPlayers + 1 }));
+	}
+
 
 	if(++joinedPlayers == maxPlayers){
+		for(let i = 0; i < maxPlayers; i++){
+			clientSockets[i].send(JSON.stringify({start : true}));
+			clientSockets[i].on('message', incoming(i));
+		}
+		let sendUpdates = function() {
+			for (let client of clientSockets) {
+				let data = {
+					newBullets : newBullets,
+					remBullets : remBullets, // Removed Bullets
+					players : players
+				};
+				client.send(JSON.stringify(data));
+			}
+			newBullets = [];
+			remBullets = [];
+		};
+		// Periodically send updates to clients.
+		gameloop.setGameLoop(sendUpdates, 50);
+
 		listener.close(function() {
 			console.log('Stopped listening for new players.');
 		});
@@ -55,7 +77,7 @@ function incoming(id) {
 		if(obj.dx || obj.dy) { // If obj is a new bullet
 			obj.id = bulletId++;
 			bullets.push(obj);
-			console.log(bullets);
+			// console.log(bullets);
 			newBullets.push(obj);
 		} else {
 			players[id] = obj;
@@ -79,19 +101,6 @@ gameloop.setGameLoop(function(delta) {
 	}
 }, 1000 / 30);
 
-// Periodically send updates to clients.
-gameloop.setGameLoop(function() {
-	for (let client of clientSockets) {
-		let data = {
-			newBullets : newBullets,
-			remBullets : remBullets, // Removed Bullets
-			players : players
-		};
-		newBullets = [];
-		remBullets = [];
-		client.send(JSON.stringify(data));
-	}
-}, 50);
 
 
 const listener = server.listen(8080, function listening() {

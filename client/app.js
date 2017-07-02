@@ -47,18 +47,14 @@ function keyDown(e) {
 
 }
 
-window.onload = function() {
-	server = new WebSocket('ws://localhost:8080');
-	const canvas = document.getElementById('canvas');
-	const context = canvas.getContext('2d');
-
+function makeRedraw(context) {
 	let oldTick = 0;
 	const redraw = function(newTick) {
 		let delta = (newTick - oldTick) / 1000;
 		oldTick = newTick;
 
 		// Hint: Doesnot work with transformations
-		context.clearRect(0, 0, canvas.width, canvas.height);
+		context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
 		for(let bullet of bullets){
 			// Predict bullet's parameters
@@ -82,8 +78,18 @@ window.onload = function() {
 		}
 		requestAnimationFrame(redraw);
 	};
+	return redraw;
+}
+
+
+window.onload = function() {
+	server = new WebSocket('ws://localhost:8080');
+	const canvas = document.getElementById('canvas');
+	const context = canvas.getContext('2d');
 
 	window.addEventListener("keydown", keyDown, false);
+
+	const redraw = makeRedraw(context);
 
 	server.onopen = function () {
 		server.onmessage = function(event){
@@ -99,8 +105,17 @@ window.onload = function() {
 			context.canvas.width = width;
 			context.canvas.height = height;
 
-			requestAnimationFrame(redraw);
-			server.onmessage = recv;
+			server.onmessage = function(event){
+				console.log('data', event.data);
+				const data = JSON.parse(event.data);
+				if(data.start){
+					console.log("OK da");
+					requestAnimationFrame(redraw);
+					server.onmessage = recv;
+				} else {
+					console.log(data);
+				}
+			};
 
 		};
 	};
