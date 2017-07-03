@@ -20,6 +20,7 @@ let bulletId = 0; // For generating unique bullet ids
 let players = [];
 let maxPlayers = 2, joinedPlayers = 0;
 let clientSockets = [];
+let gameDuration = 60000;
 
 wss.on('connection', function connection(ws) {
 	// Send initial game parameters
@@ -64,6 +65,14 @@ wss.on('connection', function connection(ws) {
 		};
 		// Periodically send updates to clients.
 		gameloop.setGameLoop(sendUpdates, 50);
+
+		// Shutdown game after sometime
+		setInterval(function() {
+			console.log("Shutting down");
+			wss.close();
+			process.exit(0);
+		}, gameDuration);
+
 
 		listener.close(function() {
 			console.log('Stopped listening for new players.');
