@@ -12,12 +12,7 @@ let playerId = 0;
 function recv(event) {
 	const data = JSON.parse(event.data);
 	bullets = bullets.concat(data.newBullets);
-	if(data.remBullets.length > 0){
-		console.log('removing bullets', data.remBullets);
-		console.log('bullets was', bullets);
-		bullets = bullets.filter(x => !(new Set(data.remBullets)).has(x.id));
-		console.log('bullets is', bullets);
-	}
+	bullets = bullets.filter(x => !(new Set(data.remBullets)).has(x.id));
 	for(let i = 0; i < maxPlayers; i++){
 		if(i != playerId){ 
 			Object.assign(players[i], data.players[i]);
@@ -28,10 +23,10 @@ function recv(event) {
 
 function keyDown(e) {
 	switch(e.keyCode){
-		case 37: player.x -= 10; player.sense = "-x"; break;
-		case 38: player.y -= 10; player.sense = "-y"; break;
-		case 39: player.x += 10; player.sense = "+x"; break;
-		case 40: player.y += 10; player.sense = "+y"; break;
+		case 37: player.x -= 20; player.sense = "-x"; break;
+		case 38: player.y -= 20; player.sense = "-y"; break;
+		case 39: player.x += 20; player.sense = "+x"; break;
+		case 40: player.y += 20; player.sense = "+y"; break;
 
 		case 32: 
 			let bullet = {};

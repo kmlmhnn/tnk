@@ -20,7 +20,7 @@ let bulletId = 0; // For generating unique bullet ids
 let players = [];
 let maxPlayers = 2, joinedPlayers = 0;
 let clientSockets = [];
-let gameDuration = 60000 * 2;
+let gameDuration = 60000 * 10; // 10 mins
 let deaths = [];
 
 wss.on('connection', function connection(ws) {
