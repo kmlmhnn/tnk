@@ -20,7 +20,8 @@ let bulletId = 0; // For generating unique bullet ids
 let players = [];
 let maxPlayers = 2, joinedPlayers = 0;
 let clientSockets = [];
-let gameDuration = 60000;
+let gameDuration = 60000 * 2;
+let deaths = [];
 
 wss.on('connection', function connection(ws) {
 	// Send initial game parameters
@@ -32,6 +33,7 @@ wss.on('connection', function connection(ws) {
 		sense : "-y"
 	};
 	players.push(player);
+	deaths.push(0);
 
 
 	ws.send(JSON.stringify({
@@ -98,6 +100,11 @@ function incoming(id) {
 
 const gameloop = require('node-gameloop');
 
+function intersect(bullet, player){
+	return !(player.x > bullet.x + 10 || player.x + 20 < bullet.x || player.y > bullet.y + 10 || player.y + 20 < bullet.y);
+}
+
+
 // Gamestate updation
 gameloop.setGameLoop(function(delta) {
 	for(let bullet of bullets) {
@@ -108,10 +115,33 @@ gameloop.setGameLoop(function(delta) {
 		bullet.x %= canvasDimensions[0];
 		bullet.y %= canvasDimensions[1];
 	}
+
+	for(let bullet of bullets) {
+		for(let player of players) {
+			if(intersect(bullet, player)){
+				const bi = bullets.indexOf(bullet),
+					pi = players.indexOf(player);
+
+				bullets.splice(bi, 1);
+				remBullets.push(bullet.id);
+
+				deaths[pi]++;
+
+				players[pi].x = Math.floor(Math.random() * 640);
+				players[pi].y = Math.floor(Math.random() * 480);
+
+
+
+			}
+		}
+	}
+
+
+
 }, 1000 / 30);
 
 
 
 const listener = server.listen(8080, function listening() {
-	// console.log('listening on 8080...');
+	console.log('listening on 8080...');
 });

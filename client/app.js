@@ -12,7 +12,12 @@ let playerId = 0;
 function recv(event) {
 	const data = JSON.parse(event.data);
 	bullets = bullets.concat(data.newBullets);
-	bullets = bullets.filter(x => !(new Set(data.remBullets)).has(x.id));
+	if(data.remBullets.length > 0){
+		console.log('removing bullets', data.remBullets);
+		console.log('bullets was', bullets);
+		bullets = bullets.filter(x => !(new Set(data.remBullets)).has(x.id));
+		console.log('bullets is', bullets);
+	}
 	for(let i = 0; i < maxPlayers; i++){
 		if(i != playerId){ 
 			Object.assign(players[i], data.players[i]);
@@ -102,14 +107,13 @@ window.onload = function() {
 			context.canvas.height = height;
 
 			server.onmessage = function(event){
-				console.log('data', event.data);
 				const data = JSON.parse(event.data);
 				if(data.start){
 					window.addEventListener("keydown", keyDown, false);
 					requestAnimationFrame(redraw);
 					server.onmessage = recv;
 				} else {
-					console.log(data);
+					// console.log(data); still waiting for players
 				}
 			};
 
