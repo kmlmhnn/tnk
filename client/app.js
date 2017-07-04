@@ -23,6 +23,7 @@ function recv(event) {
 			Object.assign(players[i], data.players[i]);
 		}
 	}
+	Object.assign(player, data.players[playerId]);
 }
 
 function keyDown(e) {
