@@ -8,10 +8,17 @@ let player = {};
 let bullets = [];
 let server = {};
 let playerId = 0;
+
 let playerVel = 0;
 let bulletVel = 0;
 let playerSize = 0;
 let bulletSize = 0;
+let playerLeft = "";
+let playerRight = "";
+let playerUp = "";
+let playerDown = "";
+
+let width = 0, height = 0;
 
 function recv(event) {
 	const data = JSON.parse(event.data);
@@ -51,7 +58,40 @@ function keyDown(e) {
 			server.send(JSON.stringify(bullet));
 			return;
 	}
+	
+	if(player.x < 0){
+		player.x = 0;
+	} else if(player.x > width - 1){
+		player.x = width - 1;
+	}
+
+	if(player.y < 0){
+		player.y = 0;
+	} else if(player.y > height - 1){
+		player.y = height - 1;
+	}
+
 	server.send(JSON.stringify(player));
+
+}
+
+function drawPlayer(context, player){
+	let str = "", unit = (playerSize * 2) / 3; // TODO: Remove Dependency bw player and bullet size in config file. 
+	switch(player.sense){
+		case "-x": str = playerLeft; break;
+		case "+x": str = playerRight; break;
+		case "-y": str = playerUp; break;
+		case "+y": str = playerDown; break;
+	}
+	let i = 0;
+	for(let y = player.y - playerSize; y < player.y + playerSize; y += unit){
+		for(let x = player.x - playerSize; x < player.x + playerSize; x += unit){
+			switch(str[i++]){
+				case '1' : context.fillRect(x, y, unit, unit); break;
+				case '0': break;
+			}
+		}
+	}
 
 }
 
@@ -61,6 +101,7 @@ function makeRedraw(context) {
 		let delta = (newTick - oldTick) / 1000;
 		oldTick = newTick;
 
+		// Clear screen
 		context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
 		for(let bullet of bullets){
@@ -77,13 +118,11 @@ function makeRedraw(context) {
 				2 * bulletSize, 2 * bulletSize);
 		}
 		// Draw player
-		context.fillRect(player.x - playerSize, player.y - playerSize, 
-			2 * playerSize, 2 * playerSize);
+		drawPlayer(context, player);
 		// Draw others
 		for(let i = 0; i < maxPlayers; i++){
 			if(i != playerId){ 
-				context.fillRect(players[i].x - playerSize, 
-					players[i].y - playerSize, 2 * playerSize, 2 * playerSize);
+				drawPlayer(context, players[i]);
 			}
 		}
 		requestAnimationFrame(redraw);
@@ -103,8 +142,7 @@ window.onload = function() {
 	server.onopen = function () {
 		server.onmessage = function(event){
 			const data = JSON.parse(event.data);
-			// const width = data.dim[0], height = data.dim[1];
-			const width = data.config.width, height = data.config.height;
+			width = data.config.width; height = data.config.height;
 
 			Object.assign(player, data.player);
 			playerId = data.id;
@@ -115,10 +153,17 @@ window.onload = function() {
 			context.canvas.width = width;
 			context.canvas.height = height;
 
+			canvas.style.backgroundColor = data.config.bgColor;
+
 			playerVel = data.config.playerVel;
 			bulletVel = data.config.bulletVel;
 			playerSize = data.config.playerSize;
 			bulletSize = data.config.bulletSize;
+
+			playerLeft = data.config.playerLeft;
+			playerRight = data.config.playerRight;
+			playerUp = data.config.playerUp;
+			playerDown = data.config.playerDown;
 
 			server.onmessage = function(event){
 				const data = JSON.parse(event.data);
