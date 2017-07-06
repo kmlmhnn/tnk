@@ -8,6 +8,10 @@ let player = {};
 let bullets = [];
 let server = {};
 let playerId = 0;
+let playerVel = 0;
+let bulletVel = 0;
+let playerSize = 0;
+let bulletSize = 0;
 
 function recv(event) {
 	const data = JSON.parse(event.data);
@@ -23,10 +27,10 @@ function recv(event) {
 
 function keyDown(e) {
 	switch(e.keyCode){
-		case 37: player.x -= 20; player.sense = "-x"; break;
-		case 38: player.y -= 20; player.sense = "-y"; break;
-		case 39: player.x += 20; player.sense = "+x"; break;
-		case 40: player.y += 20; player.sense = "+y"; break;
+		case 37: player.x -= playerVel; player.sense = "-x"; break;
+		case 38: player.y -= playerVel; player.sense = "-y"; break;
+		case 39: player.x += playerVel; player.sense = "+x"; break;
+		case 40: player.y += playerVel; player.sense = "+y"; break;
 
 		case 32: 
 			let bullet = {};
@@ -35,14 +39,14 @@ function keyDown(e) {
 			bullet.y = player.y;
 
 			switch(player.sense){
-				case "-x": bullet.dx = -1000; bullet.dy = 0; break;
-				case "-y": bullet.dy = -1000; bullet.dx = 0; break;
-				case "+x": bullet.dx =  1000; bullet.dy = 0; break;
-				case "+y": bullet.dy =  1000; bullet.dx = 0; break;
+				case "-x": bullet.dx = -bulletVel; bullet.dy = 0; break;
+				case "-y": bullet.dy = -bulletVel; bullet.dx = 0; break;
+				case "+x": bullet.dx =  bulletVel; bullet.dy = 0; break;
+				case "+y": bullet.dy =  bulletVel; bullet.dx = 0; break;
 			}
 			
-			bullet.x += (bullet.dx / 1000) * 20;
-			bullet.y += (bullet.dy / 1000) * 20;
+			bullet.x += (bullet.dx / bulletVel) * 2 * playerSize;
+			bullet.y += (bullet.dy / bulletVel) * 2 * playerSize;
 
 			server.send(JSON.stringify(bullet));
 			return;
@@ -69,14 +73,17 @@ function makeRedraw(context) {
 			bullet.y %= context.canvas.height;
 
 			// Draw bullet
-			context.fillRect(bullet.x - 5, bullet.y - 5, 10, 10);
+			context.fillRect(bullet.x - bulletSize, bullet.y - bulletSize,
+				2 * bulletSize, 2 * bulletSize);
 		}
 		// Draw player
-		context.fillRect(player.x - 10, player.y - 10, 20, 20);
+		context.fillRect(player.x - playerSize, player.y - playerSize, 
+			2 * playerSize, 2 * playerSize);
 		// Draw others
 		for(let i = 0; i < maxPlayers; i++){
 			if(i != playerId){ 
-				context.fillRect(players[i].x, players[i].y, 20, 20);
+				context.fillRect(players[i].x - playerSize, 
+					players[i].y - playerSize, 2 * playerSize, 2 * playerSize);
 			}
 		}
 		requestAnimationFrame(redraw);
@@ -96,16 +103,22 @@ window.onload = function() {
 	server.onopen = function () {
 		server.onmessage = function(event){
 			const data = JSON.parse(event.data);
-			const width = data.dim[0], height = data.dim[1];
+			// const width = data.dim[0], height = data.dim[1];
+			const width = data.config.width, height = data.config.height;
 
 			Object.assign(player, data.player);
 			playerId = data.id;
-			maxPlayers = data.max;
+			maxPlayers = data.config.maxPlayers;
 
 			players = new Array(maxPlayers).fill({});
 
 			context.canvas.width = width;
 			context.canvas.height = height;
+
+			playerVel = data.config.playerVel;
+			bulletVel = data.config.bulletVel;
+			playerSize = data.config.playerSize;
+			bulletSize = data.config.bulletSize;
 
 			server.onmessage = function(event){
 				const data = JSON.parse(event.data);

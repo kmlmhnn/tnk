@@ -13,17 +13,21 @@ const wss = new WebSocket.Server({ server });
 
 
 // Globals
-let width = 500, height = 500;
+const config = require('./config.js');
+const width = config.width, height = config.height,
+	maxPlayers = config.maxPlayers, 
+	bulletSize = config.bulletSize,		// Actuall, half the bulletsize and
+	playerSize = config.playerSize,	// half the playersize
+	gameDuration = config.gameDuration;
+
+
+let joinedPlayers = 0;
 let bullets = [];
 let newBullets = [], remBullets = [];
 let bulletId = 0; // For generating unique bullet ids
 let players = [];
-let maxPlayers = 1, joinedPlayers = 0;
 let clientSockets = [];
-let gameDuration = 60000 * 10; // 10 mins
 let deaths = [];
-let bulletSize = 5;		// Actuall, half the bulletsize and
-let playerSize = 10;	// half the playersize
 
 wss.on('connection', function connection(ws) {
 	// Send initial game parameters
@@ -39,10 +43,9 @@ wss.on('connection', function connection(ws) {
 
 
 	ws.send(JSON.stringify({
-		dim : [width, height],
+		config : config,
 		player : player,
 		id : joinedPlayers,
-		max : maxPlayers
 	}));
 
 	for(let client of clientSockets){
