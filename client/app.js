@@ -33,12 +33,17 @@ function keyDown(e) {
 			bullet.id = 0;
 			bullet.x = player.x; 
 			bullet.y = player.y;
+
 			switch(player.sense){
 				case "-x": bullet.dx = -1000; bullet.dy = 0; break;
 				case "-y": bullet.dy = -1000; bullet.dx = 0; break;
 				case "+x": bullet.dx =  1000; bullet.dy = 0; break;
 				case "+y": bullet.dy =  1000; bullet.dx = 0; break;
 			}
+			
+			bullet.x += (bullet.dx / 1000) * 20;
+			bullet.y += (bullet.dy / 1000) * 20;
+
 			server.send(JSON.stringify(bullet));
 			return;
 	}
@@ -64,10 +69,10 @@ function makeRedraw(context) {
 			bullet.y %= context.canvas.height;
 
 			// Draw bullet
-			context.fillRect(bullet.x, bullet.y, 10, 10);
+			context.fillRect(bullet.x - 5, bullet.y - 5, 10, 10);
 		}
 		// Draw player
-		context.fillRect(player.x, player.y, 20, 20);
+		context.fillRect(player.x - 10, player.y - 10, 20, 20);
 		// Draw others
 		for(let i = 0; i < maxPlayers; i++){
 			if(i != playerId){ 

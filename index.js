@@ -13,23 +13,25 @@ const wss = new WebSocket.Server({ server });
 
 
 // Globals
-const canvasDimensions = [ 640, 480 ];
+let width = 500, height = 500;
 let bullets = [];
 let newBullets = [], remBullets = [];
 let bulletId = 0; // For generating unique bullet ids
 let players = [];
-let maxPlayers = 2, joinedPlayers = 0;
+let maxPlayers = 1, joinedPlayers = 0;
 let clientSockets = [];
 let gameDuration = 60000 * 10; // 10 mins
 let deaths = [];
+let bulletSize = 5;		// Actuall, half the bulletsize and
+let playerSize = 10;	// half the playersize
 
 wss.on('connection', function connection(ws) {
 	// Send initial game parameters
 	clientSockets.push(ws);
 
 	let player = {
-		x : Math.floor(Math.random() * 640),
-		y : Math.floor(Math.random() * 480),
+		x : Math.floor(Math.random() * width),
+		y : Math.floor(Math.random() * height),
 		sense : "-y"
 	};
 	players.push(player);
@@ -37,7 +39,7 @@ wss.on('connection', function connection(ws) {
 
 
 	ws.send(JSON.stringify({
-		dim : canvasDimensions,
+		dim : [width, height],
 		player : player,
 		id : joinedPlayers,
 		max : maxPlayers
@@ -100,8 +102,27 @@ function incoming(id) {
 
 const gameloop = require('node-gameloop');
 
-function intersect(bullet, player){
-	return !(player.x > bullet.x + 10 || player.x + 20 < bullet.x || player.y > bullet.y + 10 || player.y + 20 < bullet.y);
+function max(a, b){
+	return (a > b) ? a : b;
+}
+function min(a, b){
+	return (a < b) ? a : b;
+}
+
+function intersect(bullet, player, delta){
+	let oldBullet = {};
+	oldBullet.x = bullet.x - bullet.dx * delta;
+	oldBullet.y = bullet.y - bullet.dy * delta;
+	let sweep = {};
+	sweep.left = min(bullet.x, oldBullet.x) - bulletSize;
+	sweep.top = min(bullet.y, oldBullet.y) - bulletSize;
+	sweep.right = max(bullet.x, oldBullet.x) + bulletSize;
+	sweep.bottom = max(bullet.y, oldBullet.y) + bulletSize;
+
+	return !(player.x - playerSize > sweep.right || 
+		player.x + playerSize < sweep.left || 
+		player.y - playerSize > sweep.bottom || 
+		player.y + playerSize < sweep.top);
 }
 
 
@@ -109,16 +130,16 @@ function intersect(bullet, player){
 gameloop.setGameLoop(function(delta) {
 	for(let bullet of bullets) {
 		bullet.x += bullet.dx * delta;
-		if (bullet.x < 0) bullet.x += canvasDimensions[0];
+		if (bullet.x < 0) bullet.x += width;
 		bullet.y += bullet.dy * delta;
-		if (bullet.y < 0) bullet.y += canvasDimensions[1];
-		bullet.x %= canvasDimensions[0];
-		bullet.y %= canvasDimensions[1];
+		if (bullet.y < 0) bullet.y += height;
+		bullet.x %= width;
+		bullet.y %= height;
 	}
 
 	for(let bullet of bullets) {
 		for(let player of players) {
-			if(intersect(bullet, player)){
+			if(intersect(bullet, player, delta)){
 				const bi = bullets.indexOf(bullet),
 					pi = players.indexOf(player);
 
@@ -127,8 +148,8 @@ gameloop.setGameLoop(function(delta) {
 
 				deaths[pi]++;
 
-				players[pi].x = Math.floor(Math.random() * 640);
-				players[pi].y = Math.floor(Math.random() * 480);
+				players[pi].x = Math.floor(Math.random() * width);
+				players[pi].y = Math.floor(Math.random() * height);
 
 
 
